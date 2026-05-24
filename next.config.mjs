@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 
 const isDev = process.env.NODE_ENV === 'development'
+const isProd = process.env.NODE_ENV === 'production'
 
 const cspDirectives = [
   "default-src 'self'",
@@ -14,10 +15,11 @@ const cspDirectives = [
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
-  // Allow OpenStreetMap iframe embed
+  // Allow ArcGIS satellite tiles and OpenStreetMap for the Leaflet map
   "frame-src https://www.openstreetmap.org",
   "frame-ancestors 'none'",
-  "upgrade-insecure-requests",
+  // upgrade-insecure-requests only when served over HTTPS
+  ...(isProd && process.env.HTTPS === 'true' ? ["upgrade-insecure-requests"] : []),
 ].join('; ')
 
 const securityHeaders = [
