@@ -1,0 +1,174 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ ENUMS ============
+enum UserStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  REJECTED
+}
+
+// ============ ROLES ============
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  users       User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("roles")
+}
+
+// ============ USERS ============
+model User {
+  id             String    @id @default(cuid())
+  name           String
+  email          String    @unique
+  password       String
+  phone          String?
+  avatarUrl      String?
+  cpfCnpj        String?   @unique
+  status         UserStatus @default(ACTIVE)
+  mustChangePassword Boolean @default(false)
+  isActive       Boolean   @default(true)
+  emailVerified  Boolean   @default(false)
+  resetToken     String?
+  resetTokenExp  DateTime?
+  roleId         String
+  role           Role      @relation(fields: [roleId], references: [id])
+  clientId       String?
+  client         Client?   @relation(fields: [clientId], references: [id])
+  tickets        Ticket[]  @relation("TicketCreator")
+  assignedTickets Ticket[] @relation("TicketAssignee")
+  comments       TicketComment[]
+  auditLogs      AuditLog[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("users")
+}
+
+// ============ CLIENTS ============
+model Client {
+  id          String   @id @default(cuid())
+  companyName String
+  cnpj        String?  @unique
+  phone       String?
+  email       String?
+  address     String?
+  city        String?
+  state       String?
+  zipCode     String?
+  website     String?
+  notes       String?
+  isActive    Boolean  @default(true)
+  users       User[]
+  tickets     Ticket[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("clients")
+}
+
+// ============ TICKETS ============
+model Ticket {
+  id          String         @id @default(cuid())
+  title       String
+  description String
+  status      TicketStatus   @default(OPEN)
+  priority    TicketPriority @default(MEDIUM)
+  category    String?
+  attachments String[]
+  clientId    String
+  client      Client         @relation(fields: [clientId], references: [id])
+  creatorId   String
+  creator     User           @relation("TicketCreator", fields: [creatorId], references: [id])
+  assigneeId  String?
+  assignee    User?          @relation("TicketAssignee", fields: [assigneeId], references: [id])
+  comments    TicketComment[]
+  closedAt    DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@map("tickets")
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// ============ TICKET COMMENTS ============
+model TicketComment {
+  id         String   @id @default(cuid())
+  content    String
+  isInternal Boolean  @default(false)
+  attachments String[]
+  ticketId   String
+  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User     @relation(fields: [authorId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("ticket_comments")
+}
+
+// ============ AUDIT LOGS ============
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  entity    String
+  entityId  String
+  metadata  Json?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+// ============ SYSTEM CONFIG ============
+model SystemConfig {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("system_configs")
+}
+
+// ============ CONTACT REQUESTS ============
+model ContactRequest {
+  id          String   @id @default(cuid())
+  name        String
+  company     String
+  email       String
+  phone       String
+  serviceType String
+  description String
+  status      String   @default("new")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("contact_requests")
+}
